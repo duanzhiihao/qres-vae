@@ -4,13 +4,14 @@ from tqdm import tqdm
 import torch
 import torchvision as tv
 
-from mycv.models.vae.qres.library import qres34m
-from mycv.paths import IMPROC_DIR
-image_path = str(IMPROC_DIR / 'kodak/kodim01.png')
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from models.library import qres34m
 
 
 @torch.no_grad()
-def speedtest(model, repeat=10):
+def speedtest(model, image_path, repeat=10):
     device = next(model.parameters()).device
 
     encode_time = 0
@@ -44,9 +45,9 @@ def main(args):
     model.eval()
     model.compress_mode()
 
-    _ = speedtest(model, repeat=1) # warm up
-    enc_time, dec_time = speedtest(model, repeat=10)
-    print(f'{type(model)}, device={device}, {image_path}')
+    _ = speedtest(model, args.impath, repeat=1) # warm up
+    enc_time, dec_time = speedtest(model, args.impath, repeat=10)
+    print(f'{type(model)}, device={device}, {args.impath}')
     print(f'encode time={enc_time:.3f}s, decode time={dec_time:.3f}s')
     print()
 
@@ -54,7 +55,8 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--device', type=str, default='cpu')
+    parser.add_argument('-i', '--impath', type=str, default='d:/datasets/improcessing/kodak/kodim01.png')
     parser.add_argument('-w', '--weights_path', type=str,
-                        default='mycv/weights/my-vaes/dh-64s4x/dh_64s4x-lmb1024/last_ema.pt')
+                        default='checkpoints/qres34m/lmb1024/last_ema.pt')
     args = parser.parse_args()
     main(args)
