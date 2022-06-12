@@ -12,7 +12,7 @@ QRes-VAE is a lossy image coder.
 
 ## Pre-trained model checkpoints
 - QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
-- QRes-VAE (17M) [Google Drive]: a smaller model trained on CelebA64 dataset. For ablation study and additional experiments only.
+- QRes-VAE (17M) [Google Drive]: a smaller model trained on CelebA dataset for ablation study.
 
 ## Usage
 ### Image compression
