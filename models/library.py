@@ -51,9 +51,6 @@ def qres34m(lmb=32):
     cfg.im_scale = 3.67572653978347
     cfg.max_stride = 64
 
-    cfg.log_images = ['collie64.png', 'cat64.png', 'gun128.png',
-                      'zebra256.png', 'house256.png', 'motor256.png']
-
     model = qres.HierarchicalVAE(cfg)
     return model
 
@@ -99,9 +96,6 @@ def qres34m_lossless():
     cfg.im_scale = 3.67572653978347
     cfg.max_stride = 64
 
-    cfg.log_images = ['collie64.png', 'cat64.png', 'gun128.png',
-                      'zebra256.png', 'house256.png', 'motor256.png']
-
     model = qres.HierarchicalVAE(cfg)
     return model
 
@@ -142,9 +136,6 @@ def qres17m(lmb=None):
     cfg.im_shift = -0.4356
     cfg.im_scale = 3.397893306150187
     cfg.max_stride = 64
-
-    cfg.log_images = ['200001.png', '200455.png', '201559.png', '201881.png',
-                      'van-persie.png', 'catterfeld.png']
 
     model = qres.HierarchicalVAE(cfg)
     return model

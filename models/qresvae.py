@@ -1,13 +1,11 @@
 import sys
 import pickle
 from collections import OrderedDict
-from pathlib import Path
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as tnf
 import torch.distributions as td
-import torchvision as tv
 
 from compressai.entropy_models import GaussianConditional
 
@@ -49,14 +47,12 @@ def get_1x1(in_ch, out_ch, zero_bias=True, zero_weights=False):
 def gaussian_log_prob_mass(mean, log_scale, x, bin_size=0.01, prob_clamp=1e-5):
     gaussian = td.Normal(mean, torch.exp(log_scale))
     prob_mass = gaussian.cdf(x + 0.5*bin_size) - gaussian.cdf(x - 0.5*bin_size)
-    # _counts = [(prob_mass <= bound).sum().item() for bound in (1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 0)]
 
     log_prob = torch.where(
         prob_mass > prob_clamp,
         torch.log(prob_mass.clamp(min=1e-8)),
         gaussian.log_prob(x) + math.log(bin_size)
     )
-    # return log_prob, _counts
     return log_prob
 
 
@@ -329,7 +325,6 @@ class QLatentBlockBase(nn.Module):
                 z_patch = z_sample[:, :, h_slice, w_slice]
                 z = torch.clone(latent)
                 z[:, :, h_slice, w_slice] = z_patch
-            debug = 1
         else: # if `latent` is provided and `paint_box` is not provided, directly use it.
             assert pm.shape == latent.shape
             z = latent
@@ -528,8 +523,6 @@ class HierarchicalVAE(nn.Module):
         self.max_stride = config['max_stride']
 
         self._stats_log = dict()
-        self._log_images = config.get('log_images', None)
-        self._log_smpl_k = [1, 2]
         self._flops_mode = False
         self.compressing = False
 
@@ -586,7 +579,6 @@ class HierarchicalVAE(nn.Module):
             self._stats_log[f'{mode}_bppix'] = (bpdim * imC).tolist()
             channel_bpps = [stat['kl'].sum(dim=(2,3)).mean(0).cpu() / (imH * imW) for stat in stats_all]
             self._stats_log[f'{mode}_channels'] = [(bpps*self.log2_e).tolist() for bpps in channel_bpps]
-            debug = 1
 
         stats = OrderedDict()
         stats['loss']  = loss
@@ -663,47 +655,6 @@ class HierarchicalVAE(nn.Module):
             im_input = im.clone()
             im_input[:, :, h_slice, w_slice] = im_sample[:, :, h_slice, w_slice]
         return im_sample
-
-    def study(self, save_dir):
-        save_dir = Path(save_dir)
-        if not save_dir.is_dir():
-            save_dir.mkdir(parents=False)
-
-        device = next(self.parameters()).device
-        # unconditional samples
-        for k in self._log_smpl_k:
-            num = 6
-            im_samples = self.uncond_sample(nhw_repeat=(num,k,k))
-            save_path = save_dir / f'samples_k{k}_hw{im_samples.shape[2]}.png'
-            tv.utils.save_image(im_samples, fp=save_path, nrow=math.ceil(num**0.5))
-        # reconstructions
-        if self._log_images is None:
-            img_names = {
-                32:  ['gun128.png', 'butterfly64.png', 'cat64.png', 'collie32.png'],
-                64:  ['gun128.png', 'butterfly64.png', 'cat64.png'],
-                128: ['cactus.png', 'zebra256.png', 'gun128.png'],
-                256: ['cactus.png', 'zebra256.png']
-            }
-            img_names = img_names[self.max_stride]
-        else:
-            img_names = self._log_images
-        for imname in img_names:
-            impath = f'images/{imname}'
-            im = tv.io.read_image(impath).unsqueeze_(0).float().div_(255.0).to(device=device)
-            stats = self.forward(im, return_rec=True)
-            to_save = torch.cat([im, stats['im_hat']], dim=0)
-            tv.utils.save_image(to_save, fp=save_dir / imname)
-        # bits per layer logging
-        for key, vlist in self._stats_log.items():
-            if isinstance(vlist[0], (float, int)):
-                with open(save_dir / f'{key}.txt', 'a') as f:
-                    print(''.join([f'{a:<7.4f} ' for a in vlist]), file=f)
-            elif isinstance(vlist[0], list):
-                with open(save_dir / f'{key}.txt', 'w') as f:
-                    for line in vlist:
-                        print(''.join([f'{a:<7.4f} ' for a in line]), file=f)
-            else:
-                raise NotImplementedError(f'vlist: {type(vlist)}, {vlist}')
 
     def compress_mode(self, mode=True):
         if mode:
