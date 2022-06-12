@@ -41,7 +41,7 @@ def main():
         ax.legend(loc='lower right')
 
     plt.tight_layout()
-    plt.savefig('results/exp-clic-resolutions.pdf')
+    # plt.savefig('results/exp-clic-resolutions.pdf')
     plt.show()
     debug = 1
 
