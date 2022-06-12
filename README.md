@@ -3,7 +3,7 @@ QRes-VAE is a lossy image coder.
 
 ## Install
 **Requirements**:
-- `pytorch=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
+- `pytorch>=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm>=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
 - Code has been tested on both **Windows and Linux** with Intel CPUs and Nvidia GPUs (CUDA 11.3).
 
 **Download**:
