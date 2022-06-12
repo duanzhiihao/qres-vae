@@ -7,13 +7,20 @@ The code has been tested on Windows and Linux with the following packages: `pyto
 `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)),
 `timm=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
 
-### Installation
+### Download
 1. Download the repository;
 2. Download the pre-trained model checkpoints and put them in the `qres-vae/checkpoints` folder.
 
 ### Pre-trained model checkpoints
-- QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model. trained on COCO image patches for natural image compression.
-- QRes-VAE (17M): a smaller model trained on CelebA64 dataset. For ablation study and additional experiments only.
+- QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
+- QRes-VAE (17M) [Google Drive]: a smaller model trained on CelebA64 dataset. For ablation study and additional experiments only.
 
-## Quick Start
+## Usage
+### Compression and decompression
+See `demo.ipynb`.
 
+## License
+TBD
+
+## Citation
+TBD
