@@ -11,7 +11,7 @@ QRes-VAE is a lossy image coder.
 2. Download the pre-trained model checkpoints and put them in the `qres-vae/checkpoints` folder.
 
 ## Pre-trained model checkpoints
-- **QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.**
+- QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
 - QRes-VAE (17M) [Google Drive]: a smaller model trained on CelebA dataset for ablation study.
 
 ## Usage
