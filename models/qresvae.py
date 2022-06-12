@@ -537,11 +537,22 @@ class HierarchicalVAE(nn.Module):
         x = (im + self.im_shift) * self.im_scale
         return x
 
-    def process_output(self, x):
-        im = x * 0.5 + 0.5
-        return im
+    def process_output(self, x: torch.Tensor):
+        """ scale the decoder output from range (-1, 1) to (0, 1)
+
+        Args:
+            x (torch.Tensor): network decoder output, values should be between (-1, 1)
+        """
+        assert not x.requires_grad
+        im_hat = x.clone().clamp_(min=-1.0, max=1.0).mul_(0.5).add_(0.5)
+        return im_hat
 
     def preprocess_target(self, im: torch.Tensor):
+        """ only used in lossless compression
+
+        Args:
+            im (torch.Tensor): a batch of images, values should be between (0, 1)
+        """
         if not self._flops_mode:
             assert (im.dim() == 4) and (0 <= im.min() <= im.max() <= 1) and not im.requires_grad
         x = (im - 0.5) * 2.0
