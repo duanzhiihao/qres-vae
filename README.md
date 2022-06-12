@@ -22,8 +22,8 @@ QRes-VAE is a lossy image coder.
 - TBD
 
 ## Evaluation
-- Compute the rate-distortion curve on images:
-- Compute BD-rate:
+- Rate-distortion curve on images:
+- BD-rate:
 
 ## Training
 TBD
