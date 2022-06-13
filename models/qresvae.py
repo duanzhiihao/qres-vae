@@ -64,8 +64,13 @@ class GaussianNLLOutputNet(nn.Module):
         self.bin_size = bin_size
         self.loss_name = 'nll'
 
-    @torch.autocast('cuda', enabled=False)
     def forward_loss(self, feature, x_tgt):
+        """ compute negative log-likelihood loss
+
+        Args:
+            feature (torch.Tensor): feature given by the top-down decoder
+            x_tgt (torch.Tensor): original image
+        """
         feature = feature.float()
         p_mean = self.conv_mean(feature)
         p_logscale = self.conv_scale(feature)
@@ -99,7 +104,6 @@ class GaussianNLLOutputNet(nn.Module):
         device = next(self.parameters()).device
         self.discrete_gaussian = self.discrete_gaussian.to(device=device)
         lower = self.discrete_gaussian.lower_bound_scale.bound.item()
-        # max_scale = self.max_scale.item()
         max_scale = 20
         scale_table = torch.exp(torch.linspace(math.log(lower), math.log(max_scale), steps=128))
         updated = self.discrete_gaussian.update_scale_table(scale_table)
@@ -134,30 +138,24 @@ class GaussianNLLOutputNet(nn.Module):
 
 
 class MSEOutputNet(nn.Module):
-    def __init__(self, in_ch, x_ch, mse_lmb, kernel_size=5, up_stride=1, use_conv=True):
+    def __init__(self, mse_lmb):
         super().__init__()
-        if not use_conv:
-            self.conv_mean = nn.Identity()
-        elif up_stride == 1:
-            self.conv_mean  = get_conv(in_ch, x_ch, kernel_size, stride=1, padding=(kernel_size-1)//2)
-            # self.conv_scale = None
-        elif up_stride > 1:
-            self.conv_mean  = deconv(in_ch, x_ch, kernel_size, up_stride)
-            # self.conv_scale = None
-        else:
-            raise ValueError(f'Invalid up_stride={up_stride}')
         self.mse_lmb = float(mse_lmb)
         self.loss_name = 'mse'
 
-    def forward_loss(self, feature, x_tgt):
-        x_hat = self.conv_mean(feature)
+    def forward_loss(self, x_hat, x_tgt):
+        """ compute MSE loss
+
+        Args:
+            x_hat (torch.Tensor): reconstructed image
+            x_tgt (torch.Tensor): original image
+        """
         assert x_hat.shape == x_tgt.shape
-        mse = tnf.mse_loss(x_hat, x_tgt, reduction='none').mean(dim=(1,2,3))
+        mse = tnf.mse_loss(x_hat, x_tgt, reduction='none').mean(dim=(1,2,3)) # (B,3,H,W) -> (B,)
         loss = mse * self.mse_lmb
         return loss, x_hat
 
-    def mean(self, feature, temprature=None):
-        x_hat = self.conv_mean(feature)
+    def mean(self, x_hat, temprature=None):
         return x_hat
     sample = mean
 
@@ -387,32 +385,6 @@ class QLatentBlockX(QLatentBlockBase):
 
     def residual_scaling(self, N):
         self.z_proj[2].weight.data.mul_(math.sqrt(1 / 3*N))
-        # self.z_proj[2].weight.data.mul_(math.sqrt(1 / N))
-
-
-class QLatentBlockVD(QLatentBlockBase):
-    def __init__(self, width, zdim, enc_width=None, use_3x3=True):
-        super().__init__()
-        self.in_channels = width
-        self.out_channels = width
-
-        enc_width = enc_width or width
-        hidden = int(max(width, enc_width) * 0.25)
-        concat_ch = (width * 2) if enc_width is None else (width + enc_width)
-        self.resnet_front = VDBlock(width, hidden, width, use_3x3=use_3x3, zero_last=True)
-        self.resnet_end   = VDBlock(width, hidden, width, use_3x3=use_3x3)
-        self.posterior = VDBlock(concat_ch, hidden, zdim, residual=False, use_3x3=use_3x3)
-        self.prior     = VDBlock(width, hidden, zdim * 2, residual=False, use_3x3=use_3x3,
-                                 zero_last=True)
-        self.z_proj = nn.Sequential(
-            get_3x3(zdim, hidden//2) if use_3x3 else get_1x1(zdim, hidden//2),
-            nn.GELU(),
-            get_1x1(hidden//2, width),
-        )
-
-    def residual_scaling(self, N):
-        self.z_proj[2].weight.data.mul_(math.sqrt(1 / (2*N)))
-        self.resnet_end.residual_scaling(2*N)
 
 
 class TopDownDecoder(nn.Module):
