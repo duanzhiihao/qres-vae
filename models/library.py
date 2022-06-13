@@ -44,7 +44,7 @@ def qres34m(lmb=32):
         *[qres.QLatentBlockX(ch*2, z_dims[4], kernel_size=7) for _ in range(dec_nums[4])], # 16x16
         qres.subpix_conv(ch*2, im_channels, up_rate=4)
     ]
-    cfg.out_net = qres.MSEOutputNet(None, None, mse_lmb=lmb, use_conv=False)
+    cfg.out_net = qres.MSEOutputNet(mse_lmb=lmb)
 
     # mean and std computed on imagenet
     cfg.im_shift = -0.4546259594901961
@@ -130,7 +130,7 @@ def qres17m(lmb=None):
         *[qres.QLatentBlockX(ch*2, z_dims[3], kernel_size=7) for _ in range(dec_nums[3])], # 16x16
         qres.subpix_conv(ch*2, im_channels, up_rate=4)
     ]
-    cfg.out_net = qres.MSEOutputNet(None, None, mse_lmb=lmb, use_conv=False)
+    cfg.out_net = qres.MSEOutputNet(mse_lmb=lmb)
 
     # mean and std computed on CelebA
     cfg.im_shift = -0.4356
