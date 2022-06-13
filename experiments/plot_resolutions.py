@@ -17,11 +17,12 @@ def main():
     resolutions = [192, 256, 384, 512, 768, 1024, 1536, 2048]
     N = len(resolutions)
 
-    with open('results/clic-test-qres34m.json', 'r') as f:
+    dataset_name = 'clic2022-test'
+    with open(f'results/{dataset_name}-qres34m.json', 'r') as f:
         qres_stats = json.load(f)
-    with open('results/clic-test-cheng2020-anchor.json', 'r') as f:
+    with open(f'results/{dataset_name}-cheng2020-anchor.json', 'r') as f:
         cheng2020_stats = json.load(f)
-    with open('results/clic-test-mbt2018.json', 'r') as f:
+    with open(f'results/{dataset_name}-mbt2018.json', 'r') as f:
         mbt2018_stats = json.load(f)
 
     fig, axs = plt.subplots(2, 4, figsize=(16,8))
@@ -41,7 +42,7 @@ def main():
         ax.legend(loc='lower right')
 
     plt.tight_layout()
-    # plt.savefig('results/exp-clic-resolutions.pdf')
+    # plt.savefig(f'results/exp-{dataset_name}-resolutions.pdf')
     plt.show()
     debug = 1
 
