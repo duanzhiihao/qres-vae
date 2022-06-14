@@ -96,7 +96,7 @@ def main():
 
         # ======================== start training ========================
         for epoch in range(cfg.epochs):
-            pbar = tqdm(pbar, total=len(trainloader))
+            pbar = tqdm(trainloader, total=len(trainloader))
             model.train()
             for imgs in pbar:
                 imgs = imgs.to(device=device)
