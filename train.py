@@ -68,55 +68,55 @@ def get_model(name, lmb=None):
 
 
 def main():
-        cfg = parse_cli_args()
+    cfg = parse_cli_args()
 
-        # set device
-        device = torch.device('cuda', 0)
-        torch.backends.cudnn.benchmark = True
+    # set device
+    device = torch.device('cuda', 0)
+    torch.backends.cudnn.benchmark = True
 
-        # set dataset
-        trainloader = get_dataloader(cfg.train_root, cfg.train_crop, batch_size=cfg.batch_size,
-                                     workers=cfg.workers, shuffle=True)
-        valloader = get_dataloader(cfg.val_root, crop=None, batch_size=max(1, cfg.batch_size // 2),
-                                   workers=cfg.workers//2, shuffle=False)
-        # set model
-        model: torch.nn.Module = get_model(cfg.model)
-        model = model.to(device)
-        # EMA
-        ema = ModelEmaV2(model, decay=0.9998)
-        print(f'Using model {type(model)}, lmb={cfg.lmb}. EMA decay={ema.decay}', '\n')
+    # set dataset
+    trainloader = get_dataloader(cfg.train_root, cfg.train_crop, batch_size=cfg.batch_size,
+                                    workers=cfg.workers, shuffle=True)
+    valloader = get_dataloader(cfg.val_root, crop=None, batch_size=max(1, cfg.batch_size // 2),
+                                workers=cfg.workers//2, shuffle=False)
+    # set model
+    model: torch.nn.Module = get_model(cfg.model)
+    model = model.to(device)
+    # EMA
+    ema = ModelEmaV2(model, decay=0.9998)
+    print(f'Using model {type(model)}, lmb={cfg.lmb}. EMA decay={ema.decay}', '\n')
 
-        # set optimizer
-        optimizer = torch.optim.Adam(model.parameters(), lr=2e-4)
+    # set optimizer
+    optimizer = torch.optim.Adam(model.parameters(), lr=2e-4)
 
-        # logging
-        log_dir = Path(f'runs/{Path(cfg.train_root).stem}/{cfg.model}-lmb{cfg.lmb}')
-        log_dir.mkdir(parents=True, exist_ok=False)
-        print(f'\u001b[94m -- Logging run at {log_dir} -- \u001b[0m', '\n')
+    # logging
+    log_dir = Path(f'runs/{Path(cfg.train_root).stem}/{cfg.model}-lmb{cfg.lmb}')
+    log_dir.mkdir(parents=True, exist_ok=False)
+    print(f'\u001b[94m -- Logging run at {log_dir} -- \u001b[0m', '\n')
 
-        # ======================== start training ========================
-        for epoch in range(cfg.epochs):
-            pbar = tqdm(trainloader, total=len(trainloader))
-            model.train()
-            for imgs in pbar:
-                imgs = imgs.to(device=device)
+    # ======================== start training ========================
+    for epoch in range(cfg.epochs):
+        pbar = tqdm(trainloader, total=len(trainloader))
+        model.train()
+        for imgs in pbar:
+            imgs = imgs.to(device=device)
 
-                # forward
-                stats = model(imgs)
-                loss = stats['loss']
-                loss.backward()
-                grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
-                optimizer.step()
-                optimizer.zero_grad()
-                ema.update(model)
+            # forward
+            stats = model(imgs)
+            loss = stats['loss']
+            loss.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
+            optimizer.step()
+            optimizer.zero_grad()
+            ema.update(model)
 
-                minibatch_log(pbar, cfg, epoch, grad_norm.item(), stats)
-            pbar.close()
+            minibatch_log(pbar, cfg, epoch, grad_norm.item(), stats)
+        pbar.close()
 
-            results1 = evaluate_model(model, valloader)
-            results2 = evaluate_model(ema.module, valloader)
-            save_checkpoint(model,      epoch, results1, path=log_dir/'last.pt', optimizer=optimizer)
-            save_checkpoint(ema.module, epoch, results2, path=log_dir/'last_ema.pt')
+        results1 = evaluate_model(model, valloader)
+        results2 = evaluate_model(ema.module, valloader)
+        save_checkpoint(model,      epoch, results1, path=log_dir/'last.pt', optimizer=optimizer)
+        save_checkpoint(ema.module, epoch, results2, path=log_dir/'last_ema.pt')
 
 
 def minibatch_log(pbar, cfg, epoch, grad_norm, stats):
