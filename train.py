@@ -51,6 +51,7 @@ def parse_cli_args():
     parser.add_argument('--val_root',   type=str,   default='d:/datasets/improcessing/kodak')
     # optimization setting
     parser.add_argument('--batch_size', type=int,   default=64)
+    parser.add_argument('--lr',         type=float, default=2e-4)
     parser.add_argument('--grad_clip',  type=float, default=2.0)
     # training policy and tricks setting
     parser.add_argument('--epochs',     type=int,   default=400)
@@ -87,7 +88,7 @@ def main():
     print(f'Using model {type(model)}, lmb={cfg.lmb}. EMA decay={ema.decay}', '\n')
 
     # set optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
     # logging
     log_dir = Path(f'runs/{Path(cfg.train_root).stem}/{cfg.model}-lmb{cfg.lmb}')
