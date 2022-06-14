@@ -261,21 +261,30 @@ class BottomUpEncoder(nn.Module):
         return enc_features
 
 
-class QLatentBlockBase(nn.Module):
-    def __init__(self):
+class QLatentBlockX(nn.Module):
+    def __init__(self, width, zdim, enc_width=None, kernel_size=7):
         super().__init__()
-        self.in_channels:  int
-        self.out_channels: int
+        self.in_channels  = width
+        self.out_channels = width
 
-        self.resnet_front: nn.Module
-        self.resnet_end:   nn.Module
-        self.posterior:    nn.Module
-        self.prior:        nn.Module
-        self.z_proj:       nn.Module
-        self.discrete_gaussian = GaussianConditional(None, scale_bound=0.11)
+        enc_width = enc_width or width
+        hidden = int(max(width, enc_width) * 0.25)
+        concat_ch = (width * 2) if enc_width is None else (width + enc_width)
+        use_3x3 = (kernel_size >= 3)
+        self.resnet_front = MyConvNeXtBlock(width, kernel_size=kernel_size)
+        self.resnet_end   = MyConvNeXtBlock(width, kernel_size=kernel_size)
+        self.posterior = VDBlock(concat_ch, hidden, zdim, residual=False, use_3x3=use_3x3)
+        self.prior     = VDBlock(width, hidden, zdim * 2, residual=False, use_3x3=use_3x3,
+                                 zero_last=True)
+        self.z_proj = nn.Sequential(
+            get_3x3(zdim, hidden//2) if use_3x3 else get_1x1(zdim, hidden//2),
+            nn.GELU(),
+            get_1x1(hidden//2, width),
+        )
+        self.discrete_gaussian = GaussianConditional(None)
 
     def residual_scaling(self, N):
-        raise NotImplementedError()
+        self.z_proj[2].weight.data.mul_(math.sqrt(1 / 3*N))
 
     def transform_prior(self, feature):
         feature = self.resnet_front(feature)
@@ -360,31 +369,6 @@ class QLatentBlockBase(nn.Module):
         feature = feature + self.z_proj(zhat)
         feature = self.resnet_end(feature)
         return feature
-
-
-class QLatentBlockX(QLatentBlockBase):
-    def __init__(self, width, zdim, enc_width=None, kernel_size=7):
-        super().__init__()
-        self.in_channels  = width
-        self.out_channels = width
-
-        enc_width = enc_width or width
-        hidden = int(max(width, enc_width) * 0.25)
-        concat_ch = (width * 2) if enc_width is None else (width + enc_width)
-        use_3x3 = (kernel_size >= 3)
-        self.resnet_front = MyConvNeXtBlock(width, kernel_size=kernel_size)
-        self.resnet_end   = MyConvNeXtBlock(width, kernel_size=kernel_size)
-        self.posterior = VDBlock(concat_ch, hidden, zdim, residual=False, use_3x3=use_3x3)
-        self.prior     = VDBlock(width, hidden, zdim * 2, residual=False, use_3x3=use_3x3,
-                                 zero_last=True)
-        self.z_proj = nn.Sequential(
-            get_3x3(zdim, hidden//2) if use_3x3 else get_1x1(zdim, hidden//2),
-            nn.GELU(),
-            get_1x1(hidden//2, width),
-        )
-
-    def residual_scaling(self, N):
-        self.z_proj[2].weight.data.mul_(math.sqrt(1 / 3*N))
 
 
 class TopDownDecoder(nn.Module):
