@@ -1,6 +1,6 @@
 tmp.py
 *.pt
-checkpoints/**/*.png
+checkpoints/**/samples_*.png
 *.bits
 runs/
 
