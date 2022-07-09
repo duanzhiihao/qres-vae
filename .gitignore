@@ -4,6 +4,7 @@ checkpoints/**/samples_*.png
 *.bits
 runs/
 _test*
+clic2022-test-crop
 
 
 # Byte-compiled / optimized / DLL files
