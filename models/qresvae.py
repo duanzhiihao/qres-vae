@@ -1,5 +1,5 @@
-import sys
 import pickle
+from pathlib import Path
 from collections import OrderedDict
 import math
 import torch
@@ -12,7 +12,12 @@ from compressai.entropy_models import GaussianConditional
 
 def get_object_size(obj, unit='bits'):
     assert unit == 'bits'
-    return sys.getsizeof(pickle.dumps(obj)) * 8
+    tmp_path = Path('tmp.bits')
+    with open(tmp_path, 'wb') as f:
+        pickle.dump(obj, file=f)
+    num_bits = tmp_path.stat().st_size * 8
+    tmp_path.unlink()
+    return num_bits
 
 
 def deconv(in_ch, out_ch, kernel_size=5, stride=2, zero_weights=False):
@@ -557,9 +562,10 @@ class HierarchicalVAE(nn.Module):
             stats['im_hat'] = im_hat
         return stats
 
-    def forward_eval(self, im):
+    @torch.no_grad()
+    def forward_eval(self, im, return_rec=False):
         nB, imC, imH, imW = im.shape
-        stats = self.forward(im)
+        stats = self.forward(im, return_rec=return_rec)
         if self.compressing:
             compressed_object = self.compress(im)
             num_bits = get_object_size(compressed_object)
@@ -574,6 +580,7 @@ class HierarchicalVAE(nn.Module):
                 stats['real-psnr'] = -10 * math.log10(im_mse.detach().item())
         return stats
 
+    @torch.no_grad()
     def uncond_sample(self, nhw_repeat, temprature=1.0):
         """ unconditionally sample, ie, generate new images
 
@@ -586,6 +593,7 @@ class HierarchicalVAE(nn.Module):
         im_samples = self.process_output(x_samples)
         return im_samples
 
+    @torch.no_grad()
     def cond_sample(self, latents, nhw_repeat=None, temprature=1.0, paint_box=None):
         """ conditional sampling with latents
 
@@ -608,6 +616,7 @@ class HierarchicalVAE(nn.Module):
         _, stats = self.decoder.forward(activations, get_latents=True)
         return stats
 
+    @torch.no_grad()
     def inpaint(self, im, paint_box, steps=1, temprature=1.0):
         nB, imC, imH, imW = im.shape
         x1, y1, x2, y2 = paint_box
