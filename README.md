@@ -1,18 +1,23 @@
 # Lossy Image Compression with Quantized Hierarchical VAEs
-QRes-VAE is a lossy image coder.
+QRes-VAE (Quantized ResNet VAE) is a neural network model that can do lossy image compression.
+It is based on a hierarchical VAE architecture.
+
 
 ## Install
 **Requirements**:
 - `pytorch>=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm>=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
 - Code has been tested on Windows and Linux with Intel CPUs and Nvidia GPUs (Python 3.9, CUDA 11.3).
 
+
 **Download**:
 1. Download the repository;
 2. Download the pre-trained model checkpoints and put them in the `qres-vae/checkpoints` folder.
 
+
 ## Pre-trained model checkpoints
 - QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
-- QRes-VAE (17M) [Google Drive]: a smaller model trained on CelebA dataset for ablation study.
+- QRes-VAE (17M) [[Google Drive](https://drive.google.com/file/d/1p8GpOxfb5r0Hoe_eCfUx3JLq8AmtD5AW/view?usp=sharing)]: a smaller model trained on CelebA dataset for ablation study.
+
 
 ## Usage
 ### Basic image compression
@@ -24,9 +29,11 @@ QRes-VAE is a lossy image coder.
 - **Latent space interpolation**:
 - **Inpainting**:
 
+
 ## Evaluation
 - Rate-distortion curve on images:
 - BD-rate:
+
 
 ## Training
 The file `train.py` is a clean (but less flexible) single GPU training script that can *approximately* reproduce our results.
@@ -49,6 +56,7 @@ python train.py --model qres34m_ll --train_root /path/to/coco/train2017 --train_
 ```
 Again, please adjust the batch size and learning rate according to your available GPU RAM.
 
+
 ## Exactly reproduce the paper training
 TODO: `dev` branch
 This requires the `wandb` package for logging.
@@ -61,8 +69,10 @@ torchrun --nproc_per_node 4 train2.py --model qres34m --model_args lmb=128 --tra
 --wbproject qres34m --wbgroup qres34m-coco-256 --wbmode online --name lmb128
 ```
 
+
 ## License
 TBD
+
 
 ## Citation
 TBD

@@ -1,23 +1,14 @@
 import pickle
-from pathlib import Path
 from collections import OrderedDict
+from PIL import Image
 import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as tnf
 import torch.distributions as td
+import torchvision.transforms.functional as tvf
 
 from compressai.entropy_models import GaussianConditional
-
-
-def get_object_size(obj, unit='bits'):
-    assert unit == 'bits'
-    tmp_path = Path('tmp.bits')
-    with open(tmp_path, 'wb') as f:
-        pickle.dump(obj, file=f)
-    num_bits = tmp_path.stat().st_size * 8
-    tmp_path.unlink()
-    return num_bits
 
 
 def deconv(in_ch, out_ch, kernel_size=5, stride=2, zero_weights=False):
@@ -491,8 +482,9 @@ class HierarchicalVAE(nn.Module):
         """ Shift and scale the input image
 
         Args:
-            im (torch.Tensor): a batch of images, values should be between (0, 1)
+            im (torch.Tensor): a batch of images, (N, C, H, W), values between (0, 1)
         """
+        assert (im.shape[2] % self.max_stride == 0) and (im.shape[3] % self.max_stride == 0)
         if not self._flops_mode:
             assert (im.dim() == 4) and (0 <= im.min() <= im.max() <= 1) and not im.requires_grad
         x = (im + self.im_shift) * self.im_scale
@@ -502,17 +494,17 @@ class HierarchicalVAE(nn.Module):
         """ scale the decoder output from range (-1, 1) to (0, 1)
 
         Args:
-            x (torch.Tensor): network decoder output, values should be between (-1, 1)
+            x (torch.Tensor): network decoder output, (N, C, H, W), values between (-1, 1)
         """
         assert not x.requires_grad
         im_hat = x.clone().clamp_(min=-1.0, max=1.0).mul_(0.5).add_(0.5)
         return im_hat
 
     def preprocess_target(self, im: torch.Tensor):
-        """ only used in lossless compression
+        """ Shift and scale the image to make it reconstruction target
 
         Args:
-            im (torch.Tensor): a batch of images, values should be between (0, 1)
+            im (torch.Tensor): a batch of images, (N, C, H, W), values between (0, 1)
         """
         if not self._flops_mode:
             assert (im.dim() == 4) and (0 <= im.min() <= im.max() <= 1) and not im.requires_grad
@@ -563,22 +555,8 @@ class HierarchicalVAE(nn.Module):
         return stats
 
     @torch.no_grad()
-    def forward_eval(self, im, return_rec=False):
-        nB, imC, imH, imW = im.shape
-        stats = self.forward(im, return_rec=return_rec)
-        if self.compressing:
-            compressed_object = self.compress(im)
-            num_bits = get_object_size(compressed_object)
-            im_hat = self.decompress(compressed_object)
-            im_mse = tnf.mse_loss(im_hat, im, reduction='mean')
-            nB, imC, imH, imW = im.shape
-            stats['real-bppix'] = num_bits / (nB * imH * imW)
-            if hasattr(self.out_net, 'compress'): # lossless compression
-                assert torch.equal(im_hat.mul(255).round(), im.mul(255).round())
-                stats['real-mse'] = im_mse.detach().item()
-            else: # loss compression
-                stats['real-psnr'] = -10 * math.log10(im_mse.detach().item())
-        return stats
+    def forward_eval(self, *args, **kwargs):
+        return self.forward(*args, **kwargs)
 
     @torch.no_grad()
     def uncond_sample(self, nhw_repeat, temprature=1.0):
@@ -641,19 +619,35 @@ class HierarchicalVAE(nn.Module):
 
     @torch.no_grad()
     def compress(self, im):
+        """ compress a batch of images
+
+        Args:
+            im (torch.Tensor): a batch of images, (N, C, H, W), values between (0, 1)
+
+        Returns:
+            list: [string1, string2, string2, ..., string_N, feature_shape]
+        """
         x = self.preprocess_input(im)
         enc_features = self.encoder(x)
-        strings_all, feature = self.decoder.compress(enc_features)
+        compressed_obj, feature = self.decoder.compress(enc_features)
         min_res = min(enc_features.keys())
-        strings_all.append(tuple(enc_features[min_res].shape))
+        compressed_obj.append(tuple(enc_features[min_res].shape))
         if hasattr(self.out_net, 'compress'): # lossless compression
             x_tgt = self.preprocess_target(im)
             final_str = self.out_net.compress(feature, x_tgt)
-            strings_all.append(final_str)
-        return strings_all
+            compressed_obj.append(final_str)
+        return compressed_obj
 
     @torch.no_grad()
     def decompress(self, compressed_object):
+        """ decompress a compressed_object
+
+        Args:
+            compressed_object (list): same as the output of self.compress()
+
+        Returns:
+            torch.Tensor: a batch of reconstructed images, (N, C, H, W), values between (0, 1)
+        """
         if hasattr(self.out_net, 'compress'): # lossless compression
             feature = self.decoder.decompress(compressed_object[:-1])
             x_hat = self.out_net.decompress(feature, compressed_object[-1])
@@ -662,3 +656,39 @@ class HierarchicalVAE(nn.Module):
             x_hat = self.out_net.mean(feature)
         im_hat = self.process_output(x_hat)
         return im_hat
+
+    @torch.no_grad()
+    def compress_file(self, img_path, output_path):
+        # read image
+        img = Image.open(img_path)
+        img_padded = pad_divisible_by(img, div=self.max_stride)
+        device = next(self.parameters()).device
+        im = tvf.to_tensor(img_padded).unsqueeze_(0).to(device=device)
+        # compress by model
+        compressed_obj = self.compress(im)
+        compressed_obj.append((img.height, img.width))
+        # save bits to file
+        with open(output_path, 'wb') as f:
+            pickle.dump(compressed_obj, file=f)
+
+    @torch.no_grad()
+    def decompress_file(self, bits_path):
+        # read from file
+        with open(bits_path, 'rb') as f:
+            compressed_obj = pickle.load(file=f)
+        img_h, img_w = compressed_obj.pop()
+        # decompress by model
+        im_hat = self.decompress(compressed_obj)
+        return im_hat[:, :, :img_h, :img_w]
+
+
+def pad_divisible_by(img, div=64):
+    h_old, w_old = img.height, img.width
+    if (h_old % div == 0) and (w_old % div == 0):
+        return img
+    h_tgt = round(div * math.ceil(h_old / div))
+    w_tgt = round(div * math.ceil(w_old / div))
+    # left, top, right, bottom
+    padding = (0, 0, (w_tgt - w_old), (h_tgt - h_old))
+    padded = tvf.pad(img, padding=padding, padding_mode='edge')
+    return padded

@@ -1,6 +1,16 @@
 import models.qresvae as qres
 
 
+_model_functions = dict()
+
+def register_model(func):
+    _model_functions[func.__name__] = func
+    return func
+
+def get_model_func(model_name):
+    return _model_functions[model_name]
+
+
 class SimpleConfig(dict):
     """ A simple config class
     """
@@ -11,6 +21,7 @@ class SimpleConfig(dict):
         self[attr] = value
 
 
+@register_model
 def qres34m(lmb=32):
     cfg = SimpleConfig()
 
@@ -55,6 +66,7 @@ def qres34m(lmb=32):
     return model
 
 
+@register_model
 def qres34m_lossless():
     cfg = SimpleConfig()
 
@@ -100,6 +112,7 @@ def qres34m_lossless():
     return model
 
 
+@register_model
 def qres17m(lmb=None):
     cfg = SimpleConfig()
 
