@@ -60,11 +60,12 @@ def main():
     parser.add_argument('--model',   type=str, default='qres34m')
     parser.add_argument('--lambdas', type=int, default=[16, 32, 64, 128, 256, 512, 1024, 2048],
                         nargs='+')
+    parser.add_argument('--save_json', type=str, default=None)
     args = parser.parse_args()
 
     weights_root = Path('checkpoints/qres34m')
     dataset_root = Path(args.root)
-    save_json_path = f'results/{dataset_root.stem}-{args.model}.json'
+    save_json_path = args.save_json or f'results/{dataset_root.stem}-{args.model}.json'
     if Path(save_json_path).is_file():
         print(f'Warning: {save_json_path} already exists. Will overwrite it.')
 
