@@ -205,6 +205,7 @@ class MyConvNeXtBlock(ConvNeXtBlock):
                          conv_mlp=False, mlp_ratio=mlp_ratio, norm_layer=None)
         p = (kernel_size - 1) // 2
         self.conv_dw = nn.Conv2d(dim, dim, kernel_size=kernel_size, padding=p, groups=dim)
+        self.norm.affine = True # this variable is useless. just a workaround for flops computation
 
     def forward(self, x):
         shortcut = x
