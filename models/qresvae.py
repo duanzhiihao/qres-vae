@@ -238,15 +238,6 @@ class BottomUpEncoder(nn.Module):
     def __init__(self, blocks):
         super().__init__()
         self.enc_blocks = nn.ModuleList(blocks)
-        self._init_weights()
-
-    def _init_weights(self):
-        # This residual scaling improves stability and performance with many layers
-        # as shown in the Appendix (Table 3), https://arxiv.org/pdf/2011.10650.pdf
-        total_blocks = len([b for b in self.enc_blocks if hasattr(b, 'residual_scaling')])
-        for block in self.enc_blocks:
-            if hasattr(block, 'residual_scaling'):
-                block.residual_scaling(total_blocks)
 
     def forward(self, x):
         feature = x
