@@ -5,18 +5,20 @@ It is based on a hierarchical VAE architecture.
 
 ## Install
 **Requirements**:
-- `pytorch>=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm>=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
+- Python, `pytorch>=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm>=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
 - Code has been tested on Windows and Linux with Intel CPUs and Nvidia GPUs (Python 3.9, CUDA 11.3).
+- As for July 2022: `pytorch=1.12` with CUDA 11.6 recommended since in which everything (both training and testing) runs faster than in previous versions
 
 
 **Download**:
 1. Download the repository;
-2. Download the pre-trained model checkpoints and put them in the `qres-vae/checkpoints` folder.
+2. Download the pre-trained model checkpoints and put them in the `checkpoints` folder. See `checkpoints/README.md` for expected folder structure.
 
 
 ## Pre-trained model checkpoints
 - QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
 - QRes-VAE (17M) [[Google Drive](https://drive.google.com/file/d/1p8GpOxfb5r0Hoe_eCfUx3JLq8AmtD5AW/view?usp=sharing)]: a smaller model trained on CelebA dataset for ablation study.
+- QRes-VAE (34M, lossless)
 
 
 ## Usage
