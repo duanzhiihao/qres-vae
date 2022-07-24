@@ -61,7 +61,7 @@ def parse_cli_args():
     return cfg
 
 
-def get_model(name, lmb=None):
+def get_model(name, lmb=None) -> torch.nn.Module:
     from models.library import qres34m, qres34m_lossless, qres17m
     registry = {'qres34m': qres34m, 'qres34m_ll': qres34m_lossless, 'qres17m': qres17m}
     model = registry[name](lmb) if (lmb is not None) else registry[name]()
@@ -77,11 +77,10 @@ def main():
 
     # set dataset
     trainloader = get_dataloader(cfg.train_root, cfg.train_crop, batch_size=cfg.batch_size,
-                                    workers=cfg.workers, shuffle=True)
-    valloader = get_dataloader(cfg.val_root, crop=None, batch_size=max(1, cfg.batch_size // 2),
-                                workers=cfg.workers//2, shuffle=False)
+                                 workers=cfg.workers, shuffle=True)
+    valloader = get_dataloader(cfg.val_root, crop=None, batch_size=1, workers=1, shuffle=False)
     # set model
-    model: torch.nn.Module = get_model(cfg.model)
+    model = get_model(cfg.model)
     model = model.to(device)
     # EMA
     ema = ModelEmaV2(model, decay=0.9998)
@@ -91,7 +90,7 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
 
     # logging
-    log_dir = Path(f'runs/{Path(cfg.train_root).stem}/{cfg.model}-lmb{cfg.lmb}')
+    log_dir = Path(f'runs/{Path(cfg.train_root).stem}/{cfg.model}/lmb{cfg.lmb}')
     log_dir.mkdir(parents=True, exist_ok=False)
     print(f'\u001b[94m -- Logging run at {log_dir} -- \u001b[0m', '\n')
 
