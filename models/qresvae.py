@@ -40,7 +40,18 @@ def get_1x1(in_ch, out_ch, zero_bias=True, zero_weights=False):
     return get_conv(in_ch, out_ch, 1, 1, 0, zero_bias, zero_weights)
 
 
-def gaussian_log_prob_mass(mean, log_scale, x, bin_size=0.01, prob_clamp=1e-5):
+def gaussian_log_prob_mass(mean, log_scale, x, bin_size, prob_clamp=1e-5):
+    """ Compute log-probability using a Normal(mean, exp(log_scale)), where
+    probability = cdf(x + bin_size) - cdf(x - bin_size).
+
+    Args:
+        mean        (Tensor): mean of Gaussian
+        log_scale   (Tensor): scale (standard deviation) of Gaussian
+        x           (Tensor): x
+        bin_size    (float):  bin size
+        prob_clamp  (float):  when prob < prob_clamp, use approximation \
+            to improve numerical stability.
+    """
     gaussian = td.Normal(mean, torch.exp(log_scale))
     prob_mass = gaussian.cdf(x + 0.5*bin_size) - gaussian.cdf(x - 0.5*bin_size)
 
@@ -250,7 +261,17 @@ class BottomUpEncoder(nn.Module):
 
 
 class QLatentBlockX(nn.Module):
+    """ Latent block as described in the paper.
+    """
     def __init__(self, width, zdim, enc_width=None, kernel_size=7):
+        """
+        Args:
+            width       (int): number of feature channels
+            zdim        (int): number of latent variable channels
+            enc_width   (int, optional): number of encoder feature channels. \
+                Defaults to `width` if not provided.
+            kernel_size (int, optional): convolution kernel size. Defaults to 7.
+        """
         super().__init__()
         self.in_channels  = width
         self.out_channels = width
@@ -275,6 +296,11 @@ class QLatentBlockX(nn.Module):
         self.z_proj[2].weight.data.mul_(math.sqrt(1 / 3*N))
 
     def transform_prior(self, feature):
+        """ prior p(z_i | z_<i)
+
+        Args:
+            feature (torch.Tensor): feature map
+        """
         feature = self.resnet_front(feature)
         # prior p(z)
         pm, plogv = self.prior(feature).chunk(2, dim=1)
@@ -282,6 +308,12 @@ class QLatentBlockX(nn.Module):
         return feature, pm, plogv
 
     def forward_train(self, feature, enc_feature, get_latents=False):
+        """ Training mode. Forward pass and compute KL.
+
+        Args:
+            feature     (torch.Tensor): feature map
+            enc_feature (torch.Tensor): feature map
+        """
         feature, pm, plogv = self.transform_prior(feature)
         # posterior q(z|x)
         assert feature.shape[2:4] == enc_feature.shape[2:4]
@@ -303,6 +335,14 @@ class QLatentBlockX(nn.Module):
         return feature, dict(kl=kl)
 
     def forward_uncond(self, feature, t=1.0, latent=None, paint_box=None):
+        """ Sampling mode.
+
+        Args:
+            feature   (Tensor): feature map.
+            t         (float):  tempreture. Defaults to 1.0.
+            latent    (Tensor): latent variable z. Sample it from prior if not provided.
+            paint_box (Tensor): masked box for inpainting. (x1, y1, x2, y2).
+        """
         feature, pm, plogv = self.transform_prior(feature)
         pv = torch.exp(plogv)
         pv = pv * t # modulate the prior scale by the temperature t
@@ -328,6 +368,8 @@ class QLatentBlockX(nn.Module):
         return feature
 
     def update(self):
+        """ Prepare for entropy coding. Musted be called before compression.
+        """
         min_scale = 0.1
         max_scale = 20
         log_scales = torch.linspace(math.log(min_scale), math.log(max_scale), steps=64)
@@ -336,6 +378,12 @@ class QLatentBlockX(nn.Module):
         self.discrete_gaussian.update()
 
     def compress(self, feature, enc_feature):
+        """ Forward pass, compression (encoding) mode.
+
+        Args:
+            feature     (torch.Tensor): feature map
+            enc_feature (torch.Tensor): feature map
+        """
         feature, pm, plogv = self.transform_prior(feature)
         # posterior q(z|x)
         qm = self.posterior(torch.cat([feature, enc_feature], dim=1))
@@ -349,6 +397,12 @@ class QLatentBlockX(nn.Module):
         return feature, strings
 
     def decompress(self, feature, strings):
+        """ Forward pass, decompression (decoding) mode.
+
+        Args:
+            feature (torch.Tensor): feature map
+            strings (list[str]):    encoded bits
+        """
         feature, pm, plogv = self.transform_prior(feature)
         # decompress
         indexes = self.discrete_gaussian.build_indexes(torch.exp(plogv))
@@ -454,9 +508,16 @@ class TopDownDecoder(nn.Module):
 
 
 class HierarchicalVAE(nn.Module):
+    """ Class of general hierarchical VAEs
+    """
     log2_e = math.log2(math.e)
 
     def __init__(self, config: dict):
+        """ Initialize model
+
+        Args:
+            config (dict): model config dict
+        """
         super().__init__()
         self.encoder = BottomUpEncoder(blocks=config.pop('enc_blocks'))
         self.decoder = TopDownDecoder(blocks=config.pop('dec_blocks'))
@@ -504,6 +565,16 @@ class HierarchicalVAE(nn.Module):
         return x
 
     def forward(self, im, return_rec=False):
+        """ Forward pass for training
+
+        Args:
+            im (tensor): image, (B, 3, H, W)
+            return_rec (bool, optional): if True, return the reconstructed image \
+                in addition to losses. Defaults to False.
+
+        Returns:
+            dict: str -> loss
+        """
         x = self.preprocess_input(im)
         x_target = self.preprocess_target(im)
 
@@ -548,6 +619,8 @@ class HierarchicalVAE(nn.Module):
 
     @torch.no_grad()
     def forward_eval(self, *args, **kwargs):
+        """ a dummy function for evaluation
+        """
         return self.forward(*args, **kwargs)
 
     @torch.no_grad()
@@ -588,6 +661,17 @@ class HierarchicalVAE(nn.Module):
 
     @torch.no_grad()
     def inpaint(self, im, paint_box, steps=1, temprature=1.0):
+        """ Inpainting
+
+        Args:
+            im (tensor): image (with paint_box mased out)
+            paint_box (tuple): (x1, y1, x2, y2)
+            steps (int, optional): A larger `step` gives a slightly better result.
+            temprature (float, optional): tempreture. Defaults to 1.0.
+
+        Returns:
+            tensor: inpainted image
+        """
         nB, imC, imH, imW = im.shape
         x1, y1, x2, y2 = paint_box
         h_slice = slice(round(y1*imH), round(y2*imH))
@@ -603,6 +687,8 @@ class HierarchicalVAE(nn.Module):
         return im_sample
 
     def compress_mode(self, mode=True):
+        """ Prepare for entropy coding. Musted be called before compression.
+        """
         if mode:
             self.decoder.update()
             if hasattr(self.out_net, 'compress'):
@@ -651,6 +737,12 @@ class HierarchicalVAE(nn.Module):
 
     @torch.no_grad()
     def compress_file(self, img_path, output_path):
+        """ Compress an image file specified by `img_path` and save to `output_path`
+
+        Args:
+            img_path    (str): input image path
+            output_path (str): output bits path
+        """
         # read image
         img = Image.open(img_path)
         img_padded = pad_divisible_by(img, div=self.max_stride)
@@ -665,6 +757,14 @@ class HierarchicalVAE(nn.Module):
 
     @torch.no_grad()
     def decompress_file(self, bits_path):
+        """ Decompress a bits file specified by `bits_path`
+
+        Args:
+            bits_path (str): input bits path
+
+        Returns:
+            torch.Tensor: reconstructed image
+        """
         # read from file
         with open(bits_path, 'rb') as f:
             compressed_obj = pickle.load(file=f)
@@ -675,6 +775,16 @@ class HierarchicalVAE(nn.Module):
 
 
 def pad_divisible_by(img, div=64):
+    """ Pad an PIL.Image at right and bottom border \
+         such that both sides are divisible by `div`.
+
+    Args:
+        img (PIL.Image): image
+        div (int, optional): `div`. Defaults to 64.
+
+    Returns:
+        PIL.Image: padded image
+    """
     h_old, w_old = img.height, img.width
     if (h_old % div == 0) and (w_old % div == 0):
         return img
