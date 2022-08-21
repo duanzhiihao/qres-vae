@@ -3,6 +3,7 @@ from tqdm import tqdm
 from pathlib import Path
 from collections import defaultdict
 from PIL import Image
+import math
 import torch
 import torchvision as tv
 from torch.utils.data import Dataset, DataLoader
@@ -14,7 +15,7 @@ class ImageDataset(Dataset):
     def __init__(self, root, crop=None):
         transform = []
         if crop is not None: # training with simple augmentation
-            transform.append(tv.transforms.RandomCrop(256, pad_if_needed=True, padding_mode='reflect'))
+            transform.append(tv.transforms.RandomCrop(crop, pad_if_needed=True, padding_mode='reflect'))
             transform.append(tv.transforms.RandomHorizontalFlip(p=0.5))
         transform = tv.transforms.Compose(transform + [tv.transforms.ToTensor()])
         self.transform = transform
@@ -79,11 +80,13 @@ def main():
     trainloader = get_dataloader(cfg.train_root, cfg.train_crop, batch_size=cfg.batch_size,
                                  workers=cfg.workers, shuffle=True)
     valloader = get_dataloader(cfg.val_root, crop=None, batch_size=1, workers=1, shuffle=False)
+
     # set model
     model = get_model(cfg.model)
     model = model.to(device)
     # EMA
-    ema = ModelEmaV2(model, decay=0.9998)
+    ema_decay = 0.9999
+    ema = ModelEmaV2(model)
     print(f'Using model {type(model)}, lmb={cfg.lmb}. EMA decay={ema.decay}', '\n')
 
     # set optimizer
@@ -96,18 +99,23 @@ def main():
 
     # ======================== start training ========================
     for epoch in range(cfg.epochs):
-        pbar = tqdm(trainloader, total=len(trainloader))
+        pbar = tqdm(enumerate(trainloader), total=len(trainloader))
         model.train()
-        for imgs in pbar:
+        for i, imgs in pbar:
             imgs = imgs.to(device=device)
 
             # forward
             stats = model(imgs)
             loss = stats['loss']
+            # backward propagation, gradient clipping, gradient descent
             loss.backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip)
             optimizer.step()
             optimizer.zero_grad()
+
+            # ema update
+            step = epoch * len(trainloader) + i
+            ema.decay = ema_decay * (1 - math.exp(-step / 1e5)) # exponential ramp to help early iterations
             ema.update(model)
 
             minibatch_log(pbar, cfg, epoch, grad_norm.item(), stats)
