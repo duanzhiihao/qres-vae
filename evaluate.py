@@ -14,7 +14,6 @@ from models.library import get_model_func
 @torch.no_grad()
 def evaluate_model(model, dataset_root):
     tmp_bit_path = Path('tmp.bits')
-    # tmp_rec_path = Path('tmp.png')
 
     img_paths = list(Path(dataset_root).rglob('*.*'))
     img_paths.sort()
@@ -23,7 +22,6 @@ def evaluate_model(model, dataset_root):
     for impath in pbar:
         model.compress_file(impath, tmp_bit_path)
         num_bits = tmp_bit_path.stat().st_size * 8
-        # model.decompress_file(tmp_bit_path, tmp_rec_path)
         fake = model.decompress_file(tmp_bit_path).squeeze(0).cpu()
         tmp_bit_path.unlink()
 
@@ -34,16 +32,16 @@ def evaluate_model(model, dataset_root):
         psnr = -10 * math.log10(mse)
         # compute bpp
         bpp = num_bits / float(real.shape[1] * real.shape[2])
+        # accumulate stats
         stats = {
             'bpp':  float(bpp),
             'mse':  float(mse),
             'psnr': float(psnr)
         }
-
-        # accumulate stats
         accumulated_stats['count'] += 1.0
         for k,v in stats.items():
             accumulated_stats[k] += v
+
         # logging
         msg = ', '.join([f'{k}={v:.3f}' for k,v in stats.items()])
         pbar.set_description(f'image {impath.stem}: {msg}')
