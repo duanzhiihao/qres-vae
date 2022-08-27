@@ -23,7 +23,7 @@ Arxiv: TBD
 ## Pre-trained models
 - QRes-VAE (34M) [[Google Drive](https://drive.google.com/file/d/1qBJ306VgSbwo7eWWxqYnQI0bRhY0l-7R/view?usp=sharing)]: our main model for natural image compression.
 - QRes-VAE (17M) [[Google Drive](https://drive.google.com/file/d/1p8GpOxfb5r0Hoe_eCfUx3JLq8AmtD5AW/view?usp=sharing)]: a smaller model trained on CelebA dataset for ablation study.
-- QRes-VAE (34M, lossless)
+- QRes-VAE (34M, lossless) [[Google Drive](https://drive.google.com/file/d/1YNQTHqkSgVAaKnHf4eC6q3FR8Lh3lzDC/view?usp=sharing)]: a lossless compression model. Better than PNG but not as good as WebP.
 
 The `lmb` in the name of folders is the multiplier for MSE during training. I.e., `loss = rate + lmb * mse`.
 A larger `lmb` produces a higher bit rate but lower distortion.
@@ -32,7 +32,7 @@ A larger `lmb` produces a higher bit rate but lower distortion.
 ## Usage
 ### Image compression
 - **Compression and decompression (lossy)**: See `demo.ipynb`.
-- **Compression and decompression (lossless)**:
+- **Compression and decompression (lossless)**: `experiments/demo-lossless.ipynb`
 ### As a VAE generative model
 - **Progressive decoding**: `experiments/progressive-decoding.ipynb`
 - **Sampling**: `experiments/uncond-sampling.ipynb`
