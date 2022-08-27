@@ -2,17 +2,17 @@
 QRes-VAE (Quantized ResNet VAE) is a neural network model for lossy image compression.
 It is based on the ResNet VAE architecture.
 
-Arxiv report: TBD
+Arxiv: TBD
 
 
 ## Install
 **Requirements**:
 - Python, `pytorch>=1.9`, `tqdm`, `compressai` ([link](https://github.com/InterDigitalInc/CompressAI)), `timm>=0.5.4` ([link](https://github.com/rwightman/pytorch-image-models)).
-- Code has been tested in the following environments:
+- Code has been tested in all of the following environments:
     - Both Windows and Linux, with Intel CPUs and Nvidia GPUs
     - Python 3.9
     - `pytorch=1.9, 1.10, 1.11` with CUDA 11.3
-    - `pytorch=1.12` with CUDA 11.6. Models run faster (both training and testing) in this version than in previous versions.
+    - `pytorch=1.12` with CUDA 11.6, in which models run faster (both training and testing) than in previous versions.
 
 
 **Download**:
@@ -34,19 +34,20 @@ A larger `lmb` produces a higher bit rate but lower distortion.
 - **Compression and decompression (lossy)**: See `demo.ipynb`.
 - **Compression and decompression (lossless)**:
 ### As a VAE generative model
-- **Progressive decoding**:
-- **Sampling**:
-- **Latent space interpolation**:
-- **Inpainting**:
+- **Progressive decoding**: `experiments/progressive-decoding.ipynb`
+- **Sampling**: `experiments/uncond-sampling.ipynb`
+- **Latent space interpolation**: `experiments/latent-interpolation.ipynb`
+- **Inpainting**: `experiments/inpainting.ipynb`
 
 
-## Evaluation
-- Rate-distortion curve:
-- BD-rate:
+## Evaluate lossy compression efficiency
+- Rate-distortion: `python evaluate.py --root /path/to/dataset`
+- BD-rate: `experiments/bd-rate.ipynb`
+- Estimate end-to-end flops: `experiments/estimate-flops.ipynb`
 
 
 ## Training
-Training is done by minimizing the `stats['loss']` return by the model's `forward` function.
+Training is done by minimizing the `stats['loss']` term returned by the model's `forward()` function.
 
 ### Single GPU training
 The file `train.py` is a simple example script for single-GPU training.
