@@ -2,7 +2,21 @@
 QRes-VAE (Quantized ResNet VAE) is a neural network model for lossy image compression.
 It is based on the ResNet VAE architecture.
 
-Arxiv: TBD
+Arxiv link: **TBD**
+
+
+## Features
+
+- **Progressive coding:** the QRes-VAE model learns a hierarchy of features. It compresses/decompresses images in a coarse-to-fine fashion. \
+Note: images below are from the CelebA dataset and COCO dataset, respectively.
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/24869582/187014268-405851e8-b8a5-47e3-b28d-7b5d4ac20316.png" width="756" height="300">
+</p>
+
+- **Lossy compression efficiency:** the QRes-VAE model has a competetive rate-distortion performance, especially at higher bit rates.
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/24869582/187009894-f2897f2e-be5a-4ba5-b1aa-2b8c4269f43e.png" width="774" height="300">
+</p>
 
 
 ## Install
@@ -61,7 +75,7 @@ To train the `qres34m` model with `lmb=1024`:
 python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 --train_crop 256 \
 --val_root /path/to/kodak --batch_size 64 --workers 4
 ```
-In case of a `CUDA error: out of memory`, try reduce the batchsize (better with learning rate as well):
+In case of a `CUDA error: out of memory`, try reduce the batchsize (as well as the learning rate):
 ```
 python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 --train_crop 256 \
 --val_root /path/to/kodak --batch_size 16 --lr 1e-4 --workers 4
@@ -84,4 +98,4 @@ The code has a non-commercial license, as found in the [LICENSE](https://github.
 
 
 ## Citation
-TBD
+**TBD**
