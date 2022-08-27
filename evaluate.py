@@ -54,11 +54,10 @@ def evaluate_model(model, dataset_root):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--root',    type=str, default='d:/datasets/improcessing/kodak')
-    parser.add_argument('--model',   type=str, default='qres34m')
-    parser.add_argument('--lambdas', type=int, default=[16, 32, 64, 128, 256, 512, 1024, 2048],
-                        nargs='+')
-    parser.add_argument('--save_json', type=str, default=None)
+    parser.add_argument('--root',       type=str, default='d:/datasets/improcessing/kodak')
+    parser.add_argument('--model',      type=str, default='qres34m')
+    parser.add_argument('--lambdas',    type=int, default=[16, 32, 64, 128, 256, 512, 1024, 2048], nargs='+')
+    parser.add_argument('--save_json',  type=str, default=None)
     args = parser.parse_args()
 
     weights_root = Path('checkpoints/qres34m')
