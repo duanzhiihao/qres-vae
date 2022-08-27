@@ -49,6 +49,11 @@ A larger `lmb` produces a higher bit rate but lower distortion.
 ## Training
 Training is done by minimizing the `stats['loss']` term returned by the model's `forward()` function.
 
+### Data preparation
+We used the COCO dataset for training, and the Kodak images for periodic evaluation.
+- COCO: https://cocodataset.org
+- Kodak: http://r0k.us/graphics/kodak
+
 ### Single GPU training
 The file `train.py` is a simple example script for single-GPU training.
 To train the `qres34m` model with `lmb=1024`:
@@ -63,9 +68,8 @@ python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 
 ```
 
 ### Multi-GPU training (TBD)
-The `dev/train.py` supports multi-GPU training and can reproduce the paper's training results.
-<!-- Check `dev/README.md` for instructions. -->
-<!-- This requires the `wandb` package for logging. -->
+The script `train-multigpu.py` supports multi-GPU training and can reproduce the paper's training results.
+This requires the `wandb` package for logging.
 Train on 4 GPUs:
 ```
 torchrun --nproc_per_node 4 dev/train.py --model qres34m --model_args lmb=128 --trainsets coco-train \
@@ -76,7 +80,7 @@ torchrun --nproc_per_node 4 dev/train.py --model qres34m --model_args lmb=128 --
 
 
 ## License
-TBD
+The code has a non-commercial license, as found in the [LICENSE](https://github.com/duanzhiihao/qres-vae/blob/main/LICENSE) file.
 
 
 ## Citation
