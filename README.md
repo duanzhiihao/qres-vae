@@ -2,7 +2,8 @@
 QRes-VAE (Quantized ResNet VAE) is a neural network model for lossy image compression.
 It is based on the ResNet VAE architecture.
 
-Arxiv link: **TBD**
+**Paper:** Lossy Image Compression with Quantized Hierarchical VAEs \
+**Arxiv:** https://arxiv.org/abs/2208.13056
 
 
 ## Features
