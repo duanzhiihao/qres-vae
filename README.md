@@ -82,7 +82,9 @@ python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 
 --val_root /path/to/kodak --batch_size 16 --lr 1e-4 --workers 4
 ```
 
-### Multi-GPU training (TBD)
+### Multi-GPU training
+TBD
+<!---
 The script `train-multigpu.py` supports multi-GPU training and can reproduce the paper's training results.
 This requires the `wandb` package for logging.
 Train on 4 GPUs:
@@ -92,7 +94,7 @@ torchrun --nproc_per_node 4 dev/train.py --model qres34m --model_args lmb=128 --
 --grad_clip 2 --epochs 400 --fixseed --workers 4 \
 --wbproject qres34m --wbgroup qres34m-coco-256 --wbmode online --name lmb128
 ```
-
+--->
 
 ## License
 The code has a non-commercial license, as found in the [LICENSE](https://github.com/duanzhiihao/qres-vae/blob/main/LICENSE) file.
