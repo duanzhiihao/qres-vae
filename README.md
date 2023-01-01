@@ -83,7 +83,7 @@ python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 
 ```
 
 ### Multi-GPU training
-TBD
+Coming soon ...
 <!---
 The script `train-multigpu.py` supports multi-GPU training and can reproduce the paper's training results.
 This requires the `wandb` package for logging.
