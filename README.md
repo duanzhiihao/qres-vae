@@ -62,39 +62,7 @@ A larger `lmb` produces a higher bit rate but lower distortion.
 
 
 ## Training
-Training is done by minimizing the `stats['loss']` term returned by the model's `forward()` function.
-
-### Data preparation
-We used the COCO dataset for training, and the Kodak images for periodic evaluation.
-- COCO: https://cocodataset.org
-- Kodak: http://r0k.us/graphics/kodak
-
-### Single GPU training
-The file `train.py` is a simple example script for single-GPU training.
-To train the `qres34m` model with `lmb=1024`:
-```
-python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 --train_crop 256 \
---val_root /path/to/kodak --batch_size 64 --workers 4
-```
-In case of a `CUDA error: out of memory`, try reduce the batchsize (as well as the learning rate):
-```
-python train.py --model qres34m --lmb 1024 --train_root /path/to/coco/train2017 --train_crop 256 \
---val_root /path/to/kodak --batch_size 16 --lr 1e-4 --workers 4
-```
-
-### Multi-GPU training
-Coming soon ...
-<!---
-The script `train-multigpu.py` supports multi-GPU training and can reproduce the paper's training results.
-This requires the `wandb` package for logging.
-Train on 4 GPUs:
-```
-torchrun --nproc_per_node 4 dev/train.py --model qres34m --model_args lmb=128 --trainsets coco-train \
---transform crop=256,hflip=True --valset kodak --val_bs 1 --batch_size 16 --lr 2e-4 --lr_sched constant \
---grad_clip 2 --epochs 400 --fixseed --workers 4 \
---wbproject qres34m --wbgroup qres34m-coco-256 --wbmode online --name lmb128
-```
---->
+We provide training instructions for QRes-VAE in our new project repository: https://github.com/duanzhiihao/lossy-vae/tree/main/lvae/models/qresvae
 
 ## License
 The code has a non-commercial license, as found in the [LICENSE](https://github.com/duanzhiihao/qres-vae/blob/main/LICENSE) file.
